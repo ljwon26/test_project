@@ -1,84 +1,694 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>알림 관리</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-100 p-8 font-sans">
+# main.py
 
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">알림 관리</h1>
+from fastapi import FastAPI, Depends, Form, Request, BackgroundTasks, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String, Date, REAL, Float, func
+import aiosmtplib
+from email.mime.text import MIMEText
+from pydantic import BaseModel
+from datetime import date, timedelta, datetime
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from urllib.parse import urlencode
+import json
+import os
+from starlette.middleware.sessions import SessionMiddleware
 
-        <!-- 알림 추가/수정 폼 -->
-        <div class="bg-gray-50 p-6 rounded-lg mb-8 border-t-4 border-blue-500">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">
-                {% if task %}
-                알림 수정
-                {% else %}
-                새 알림 추가
-                {% endif %}
-            </h2>
-            <form action="{% if task %}/edit_notification/{{ task.id }}{% else %}/add_notification{% endif %}" method="post" class="space-y-4">
-                <div>
-                    <label for="item_name" class="block text-sm font-medium text-gray-700">아이템 이름:</label>
-                    <input type="text" id="item_name" name="item_name" value="{{ task.item_name if task }}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="model_name" class="block text-sm font-medium text-gray-700">모델명 (선택 사항):</label>
-                    <input type="text" id="model_name" name="model_name" value="{{ task.model_name if task }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="due_date" class="block text-sm font-medium text-gray-700">만료일:</label>
-                    <input type="date" id="due_date" name="due_date" value="{{ task.due_date.isoformat() if task }}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">이메일:</label>
-                    <input type="email" id="email" name="email" value="{{ task.email if task }}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
-                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    {% if task %}
-                    알림 수정
-                    {% else %}
-                    알림 추가
-                    {% endif %}
-                </button>
-            </form>
-        </div>
+# 'database.py' 파일에서 필요한 객체들을 가져옵니다.
+from database import SessionLocal, Base, engine, get_db
 
-        <!-- 알림 목록 -->
-        <h2 class="text-2xl font-semibold mb-4 text-gray-700">등록된 알림 목록</h2>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">아이템 이름</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">모델명</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">만료일</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for task in tasks %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ task.item_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ task.model_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ task.due_date.strftime('%Y-%m-%d') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ task.email }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2">
-                            <a href="/edit_notification/{{ task.id }}" class="text-blue-600 hover:text-blue-900">수정</a>
-                            <form action="/delete_notification/{{ task.id }}" method="post" onsubmit="return confirm('정말로 이 알림을 삭제하시겠습니까?');">
-                                <button type="submit" class="text-red-600 hover:text-red-900">삭제</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+app = FastAPI()
+
+# --- 세션 미들웨어 추가 ---
+SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_changed")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+# --- 로그인에 사용할 비밀번호 설정 ---
+LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "3152")
+
+# 정적 파일을 서빙하기 위한 설정입니다.
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
+
+scheduler = AsyncIOScheduler()
+scheduler.start()
+
+# --- Pydantic 모델: 데이터 유효성 검사를 위한 클래스 ---
+class TaskCreate(BaseModel):
+    item_name: str
+    model_name: str | None = None
+    due_date: date
+    email: str
+
+class AssetCreate(BaseModel):
+    date: date
+    category: str
+    item: str
+    amount: float
+    notes: str | None = None
+
+class HouseDataCreate(BaseModel):
+    date: date
+    maintenance_cost: float | None = None
+    utility_bill: float | None = None
+    memo: str | None = None
+
+class ExpenseCreate(BaseModel):
+    date: date
+    expense_type: str
+    category: str
+    item: str
+    amount: float
+    notes: str | None = None
+
+# SQLAlchemy DB 모델: 데이터베이스 테이블과 매핑되는 클래스
+class Income(Base):
+    __tablename__ = 'incomes'
+    id = Column(Integer, primary_key=True, index=True)
+    income_type = Column(String)
+    amount = Column(Float)
+
+class Task(Base):
+    __tablename__ = "tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    item_name = Column(String(100), nullable=False)
+    model_name = Column(String(100))
+    due_date = Column(Date, nullable=False)
+    email = Column(String(100), nullable=False)
+
+class Assets(Base):
+    __tablename__ = "assets"
+    id = Column(Integer, primary_key=True)
+    date = Column(Date, nullable=False)
+    category = Column(String(50), nullable=False)
+    item = Column(String(255), nullable=False)
+    amount = Column(REAL, nullable=False)
+    notes = Column(String(255))
+
+class HouseData(Base):
+    __tablename__ = "house_data"
+    id = Column(Integer, primary_key=True)
+    date = Column(Date, unique=True, nullable=False)
+    maintenance_cost = Column(REAL)
+    utility_bill = Column(REAL)
+    memo = Column(String(255))
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    id = Column(Integer, primary_key=True)
+    date = Column(Date, nullable=False)
+    expense_type = Column(String(50), nullable=False)
+    category = Column(String(100), nullable=False)
+    item = Column(String(255), nullable=False)
+    amount = Column(REAL, nullable=False)
+    notes = Column(String(255))
+
+Base.metadata.create_all(bind=engine)
+
+# --- 이메일 전송 설정 및 비동기 함수 ---
+EMAIL_ADDRESS = "ljwon26@gmail.com"
+EMAIL_PASSWORD = "qxxq unfr sfcg eoep"
+
+async def send_email(to_email: str, subject: str, body: str):
+    msg = MIMEText(body, _subtype='html')
+    msg['Subject'] = subject
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = to_email
+    SMTP_SERVER = "smtp.gmail.com"
+    SMTP_PORT = 587
+    try:
+        async with aiosmtplib.SMTP(hostname=SMTP_SERVER, port=SMTP_PORT, start_tls=True) as server:
+            await server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            await server.send_message(msg)
+            print(f"이메일 전송 성공: {subject} to {to_email}")
+    except Exception as e:
+        print(f"이메일 전송 실패: {e}")
+
+# --- 로그인/로그아웃 라우트 추가 ---
+@app.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request, error: str | None = None):
+    """로그인 폼을 보여주는 페이지입니다."""
+    return templates.TemplateResponse("login.html", {"request": request, "error": error})
+
+@app.post("/login", response_class=RedirectResponse)
+async def login_post(request: Request, password: str = Form(...)):
+    """로그인 요청을 처리합니다."""
+    if password == LOGIN_PASSWORD:
+        request.session['logged_in'] = True
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    else:
+        return RedirectResponse(url="/login?error=1", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.get("/logout", response_class=RedirectResponse)
+async def logout(request: Request):
+    """로그아웃을 처리하고 세션을 초기화합니다."""
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- 로그인 상태 확인 의존성(Dependency) ---
+async def verify_login(request: Request):
+    """
+    세션을 확인하여 로그인 상태가 아니면 로그인 페이지로 리디렉션하는 의존성 함수.
+    """
+    if not request.session.get('logged_in'):
+        raise HTTPException(
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            headers={"Location": "/login"}
+        )
+
+# --- 라우트 핸들러: API 엔드포인트 ---
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    # Assets 객체를 딕셔너리로 변환
+    assets_data_db = db.query(Assets).order_by(Assets.date.desc()).all()
+    assets_data_list = []
+    for asset in assets_data_db:
+        assets_data_list.append({
+            'id': asset.id,
+            'date': asset.date.isoformat(),
+            'category': asset.category,
+            'item': asset.item,
+            'amount': asset.amount,
+            'notes': asset.notes
+        })
     
-</body>
-</html>
+    # Task 객체를 딕셔너리로 변환하여 대시보드에 표시
+    tasks_data_db = db.query(Task).order_by(Task.due_date.asc()).all()
+    tasks_data_list = []
+    for task in tasks_data_db:
+        tasks_data_list.append({
+            'item_name': task.item_name,
+            'model_name': task.model_name,
+            'due_date': task.due_date.isoformat(),
+            'email': task.email
+        })
+
+    # 자산 카테고리별 비중 데이터 계산 (원형 그래프용)
+    category_totals = {}
+    for asset in assets_data_db:
+        if "대출" not in asset.category and "부채" not in asset.category:
+            if asset.category in category_totals:
+                category_totals[asset.category] += asset.amount
+            else:
+                category_totals[asset.category] = asset.amount
+    
+    category_data = [{"category": k, "value": v} for k, v in category_totals.items()]
+
+    # 지출 데이터를 딕셔너리로 변환
+    expenses_data_db = db.query(Expense).order_by(Expense.date.desc()).limit(10).all()
+    expenses_data_list = []
+    for expense in expenses_data_db:
+        expenses_data_list.append({
+            'id': expense.id,
+            'date': expense.date.isoformat(),
+            'expense_type': expense.expense_type,
+            'category': expense.category,
+            'item': expense.item,
+            'amount': expense.amount,
+            'notes': expense.notes
+        })
+
+    # 수입 데이터를 딕셔너리로 변환
+    incomes_data_db = db.query(Income).order_by(Income.id.desc()).limit(10).all()
+    incomes_data_list = []
+    for income in incomes_data_db:
+        incomes_data_list.append({
+            'id': income.id,
+            'income_type': income.income_type,
+            'amount': income.amount
+        })
+
+    # 이번 달 지출 데이터 집계
+    today = date.today()
+    start_of_month = today.replace(day=1)
+    monthly_expenses = db.query(Expense).filter(Expense.date >= start_of_month).all()
+    
+    expense_category_totals = {}
+    for expense in monthly_expenses:
+        if expense.category in expense_category_totals:
+            expense_category_totals[expense.category] += expense.amount
+        else:
+            expense_category_totals[expense.category] = expense.amount
+            
+    expense_category_data = [{"category": k, "value": v} for k, v in expense_category_totals.items()]
+
+    # 총 수입과 총 지출 계산
+    total_income = db.query(func.sum(Income.amount)).scalar() or 0
+    total_expense = db.query(func.sum(Expense.amount)).scalar() or 0
+
+    category_json = category_data
+    expense_category_json = expense_category_data
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "assets_data": assets_data_list,
+        "tasks_data": tasks_data_list,
+        "expenses_data": expenses_data_list,
+        "incomes_data": incomes_data_list,
+        "category_json": category_json,
+        "expense_category_json": expense_category_json,
+        "total_income": total_income,
+        "total_expense": total_expense,
+        "today": today.isoformat()
+    })
+
+@app.get("/add_asset", response_class=HTMLResponse)
+def add_asset_form(request: Request, _: bool = Depends(verify_login)):
+    return templates.TemplateResponse("add_asset.html", {"request": request, "today": date.today().isoformat()})
+
+@app.post("/add_asset", response_class=RedirectResponse)
+def create_asset(
+    date: date = Form(...),
+    category: str = Form(...),
+    item: str = Form(...),
+    amount: float = Form(...),
+    notes: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    new_asset = Assets(
+        date=date,
+        category=category,
+        item=item,
+        amount=amount,
+        notes=notes
+    )
+    db.add(new_asset)
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.get("/edit_asset/{asset_id}", response_class=HTMLResponse)
+def edit_asset_form(request: Request, asset_id: int, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    asset_data = db.query(Assets).filter(Assets.id == asset_id).first()
+    if not asset_data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset_data.amount and asset_data.amount.is_integer():
+        asset_data.amount = int(asset_data.amount)
+    
+    return templates.TemplateResponse("edit_asset.html", {
+        "request": request,
+        "asset_data": asset_data,
+        "today": date.today().isoformat()
+    })
+
+@app.post("/edit_asset/{asset_id}", response_class=RedirectResponse)
+def update_asset(
+    asset_id: int,
+    date: date = Form(...),
+    category: str = Form(...),
+    item: str = Form(...),
+    amount: float = Form(...),
+    notes: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    asset = db.query(Assets).filter(Assets.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    asset.date = date
+    asset.category = category
+    asset.item = item
+    asset.amount = amount
+    asset.notes = notes
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post("/delete_asset", response_class=RedirectResponse)
+def delete_asset(asset_id: int = Form(...), db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    asset = db.query(Assets).filter(Assets.id == asset_id).first()
+    if asset:
+        db.delete(asset)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+# --- 지출/수입 라우트 핸들러 ---
+@app.get("/expenses", response_class=HTMLResponse)
+def get_expenses(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    expenses = db.query(Expense).order_by(Expense.date.desc()).all()
+    incomes = db.query(Income).order_by(Income.id.desc()).all()
+    
+    for expense in expenses:
+        if expense.amount and expense.amount.is_integer():
+            expense.amount = int(expense.amount)
+    
+    for income in incomes:
+        if income.amount and income.amount.is_integer():
+            income.amount = int(income.amount)
+
+    return templates.TemplateResponse("expenses.html", {
+        "request": request, 
+        "expenses": expenses, 
+        "incomes": incomes,
+        "today": date.today().isoformat()
+    })
+
+@app.post("/add_expense", response_class=RedirectResponse)
+def add_expense(
+    date: date = Form(...),
+    expense_type: str = Form(...),
+    category: str = Form(...),
+    item: str = Form(...),
+    amount: float = Form(...),
+    notes: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    new_expense = Expense(
+        date=date,
+        expense_type=expense_type,
+        category=category,
+        item=item,
+        amount=amount,
+        notes=notes
+    )
+    db.add(new_expense)
+    db.commit()
+    return RedirectResponse(url="/expenses", status_code=303)
+    
+@app.get("/edit_expense/{expense_id}", response_class=HTMLResponse)
+def edit_expense_form(request: Request, expense_id: int, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense.amount and expense.amount.is_integer():
+        expense.amount = int(expense.amount)
+        
+    return templates.TemplateResponse("edit_expense.html", {
+        "request": request,
+        "expense": expense,
+        "today": date.today().isoformat()
+    })
+
+@app.post("/edit_expense/{expense_id}", response_class=RedirectResponse)
+def update_expense(
+    expense_id: int,
+    date: date = Form(...),
+    expense_type: str = Form(...),
+    category: str = Form(...),
+    item: str = Form(...),
+    amount: float = Form(...),
+    notes: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    expense.date = date
+    expense.expense_type = expense_type
+    expense.category = category
+    expense.item = item
+    expense.amount = amount
+    expense.notes = notes
+    
+    db.commit()
+    return RedirectResponse(url="/expenses", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/delete_expense", response_class=RedirectResponse)
+def delete_expense(expense_id: int = Form(...), db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if expense:
+        db.delete(expense)
+        db.commit()
+    return RedirectResponse(url="/expenses", status_code=303)
+
+@app.get("/edit_income/{income_id}", response_class=HTMLResponse)
+def edit_income_form(request: Request, income_id: int, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    """수입 수정 폼을 보여주는 라우트."""
+    income = db.query(Income).filter(Income.id == income_id).first()
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+
+    return templates.TemplateResponse("edit_income.html", {
+        "request": request,
+        "income": income,
+        "today": date.today().isoformat()
+    })
+
+@app.post("/add_income", response_class=RedirectResponse)
+def add_income(
+    income_type: str = Form(...),
+    amount: float = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    new_income = Income(
+        income_type=income_type,
+        amount=amount
+    )
+    db.add(new_income)
+    db.commit()
+    return RedirectResponse(url="/expenses", status_code=303)
+
+@app.post("/edit_income/{income_id}", response_class=RedirectResponse)
+def edit_income(
+    income_id: int,
+    income_type: str = Form(...),
+    amount: float = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    income = db.query(Income).filter(Income.id == income_id).first()
+    if not income:
+        raise HTTPException(status_code=404, detail="Income not found")
+    income.income_type = income_type
+    income.amount = amount
+    db.commit()
+    return RedirectResponse(url="/expenses", status_code=303)
+    
+@app.post("/delete_income", response_class=RedirectResponse)
+def delete_income(
+    income_id: int = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    income = db.query(Income).filter(Income.id == income_id).first()
+    if income:
+        db.delete(income)
+        db.commit()
+    return RedirectResponse(url="/expenses", status_code=303)
+
+# --- 월별 가계부 관리 라우트 ---
+@app.get("/house_data", response_class=HTMLResponse)
+def house_data_list(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    house_data = db.query(HouseData).order_by(HouseData.date.desc()).all()
+    for row in house_data:
+        if row.maintenance_cost and row.maintenance_cost.is_integer():
+            row.maintenance_cost = int(row.maintenance_cost)
+        if row.utility_bill and row.utility_bill.is_integer():
+            row.utility_bill = int(row.utility_bill)
+    return templates.TemplateResponse("house_data.html", {"request": request, "house_data": house_data, "today": date.today().isoformat()})
+
+@app.post("/add_house_data", response_class=RedirectResponse)
+def add_house_data(
+    date: date = Form(...),
+    maintenance_cost: float | None = Form(None),
+    utility_bill: float | None = Form(None),
+    memo: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    # 날짜가 이미 존재하는지 확인
+    existing_data = db.query(HouseData).filter(HouseData.date == date).first()
+    if existing_data:
+        raise HTTPException(status_code=400, detail="Data for this date already exists.")
+        
+    new_data = HouseData(
+        date=date,
+        maintenance_cost=maintenance_cost,
+        utility_bill=utility_bill,
+        memo=memo
+    )
+    db.add(new_data)
+    db.commit()
+    return RedirectResponse(url="/house_data", status_code=303)
+
+@app.post("/edit_house_data", response_class=RedirectResponse)
+def edit_house_data(
+    id: int = Form(...),
+    date: date = Form(...),
+    maintenance_cost: float | None = Form(None),
+    utility_bill: float | None = Form(None),
+    memo: str | None = Form(None),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    house_data = db.query(HouseData).filter(HouseData.id == id).first()
+    if not house_data:
+        raise HTTPException(status_code=404, detail="Data not found")
+        
+    # 날짜 중복 검사 (자신을 제외한)
+    existing_data = db.query(HouseData).filter(HouseData.date == date, HouseData.id != id).first()
+    if existing_data:
+        raise HTTPException(status_code=400, detail="Data for this date already exists.")
+        
+    house_data.date = date
+    house_data.maintenance_cost = maintenance_cost
+    house_data.utility_bill = utility_bill
+    house_data.memo = memo
+    db.commit()
+    return RedirectResponse(url="/house_data", status_code=303)
+
+@app.post("/delete_house_data", response_class=RedirectResponse)
+def delete_house_data(
+    id: int = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    house_data = db.query(HouseData).filter(HouseData.id == id).first()
+    if house_data:
+        db.delete(house_data)
+        db.commit()
+    return RedirectResponse(url="/house_data", status_code=303)
+
+# --- 알림(Task) 관리 라우트 ---
+# /notifications 경로를 /edit_notification.html로 연결
+@app.get("/notifications", response_class=HTMLResponse)
+def get_notifications(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    tasks = db.query(Task).order_by(Task.due_date.asc()).all()
+    # /notifications에서 모든 알림을 보여주는 페이지를 렌더링하도록 수정
+    return templates.TemplateResponse("reminders.html", {"request": request, "tasks": tasks, "today": date.today().isoformat()})
+
+@app.post("/add_notification", response_class=RedirectResponse)
+@app.post("/add_task", response_class=RedirectResponse)
+def add_task(
+    item_name: str = Form(...),
+    model_name: str | None = Form(None),
+    due_date: date = Form(...),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login),
+    background_tasks: BackgroundTasks = None
+):
+    new_task = Task(
+        item_name=item_name,
+        model_name=model_name,
+        due_date=due_date,
+        email=email
+    )
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
+
+    # 마감일 이메일 알림 예약
+    scheduler.add_job(
+        send_email_async,
+        'date',
+        run_date=datetime.combine(new_task.due_date, datetime.min.time()),
+        args=[new_task.email, "마감일 알림", f"'{new_task.item_name}'의 마감일이 오늘입니다."],
+        id=f"task_{new_task.id}"
+    )
+
+    return RedirectResponse(url="/reminders", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.get("/edit_notification/{task_id}", response_class=HTMLResponse)
+def edit_notification_form(request: Request, task_id: int, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    task_data = db.query(Task).filter(Task.id == task_id).first()
+    if not task_data:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return templates.TemplateResponse("edit_notification.html", {
+        "request": request,
+        "task_data": task_data,
+        "today": date.today().isoformat()
+    })
+
+@app.post("/delete_task", response_class=RedirectResponse)
+def delete_task(task_id: int = Form(...), db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if task:
+        db.delete(task)
+        db.commit()
+        # 스케줄러에서 작업 제거
+        try:
+            scheduler.remove_job(f"task_{task.id}")
+        except:
+            pass
+    return RedirectResponse(url="/reminders", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/edit_task", response_class=RedirectResponse)
+def edit_task(
+    id: int = Form(...),
+    item_name: str = Form(...),
+    model_name: str | None = Form(None),
+    due_date: date = Form(...),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_login)
+):
+    task = db.query(Task).filter(Task.id == id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task.item_name = item_name
+    task.model_name = model_name
+    task.due_date = due_date
+    task.email = email
+    
+    db.commit()
+    
+    # 기존 스케줄 작업 삭제 후 재등록
+    try:
+        scheduler.remove_job(f"task_{task.id}")
+    except:
+        pass
+    scheduler.add_job(
+        send_email_async,
+        'date',
+        run_date=datetime.combine(task.due_date, datetime.min.time()),
+        args=[task.email, "마감일 알림", f"'{task.item_name}'의 마감일이 오늘입니다."],
+        id=f"task_{task.id}"
+    )
+    
+    return RedirectResponse(url="/reminders", status_code=303)
+
+# 이메일 전송 함수 (asyncio 호환)
+async def send_email_async(to_email: str, subject: str, body: str):
+    await send_email(to_email, subject, body)
+
+@app.get("/api/summary", response_class=HTMLResponse)
+def get_summary(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
+    # 월별 총 지출 계산
+    monthly_expenses_summary = (
+        db.query(
+            func.strftime('%Y-%m', Expense.date).label('month'),
+            func.sum(Expense.amount).label('total_expense')
+        )
+        .group_by('month')
+        .order_by('month')
+        .all()
+    )
+
+    # 월별 총 수입 계산
+    monthly_incomes_summary = (
+        db.query(
+            func.strftime('%Y-%m', Income.id).label('month'),
+            func.sum(Income.amount).label('total_income')
+        )
+        .group_by('month')
+        .order_by('month')
+        .all()
+    )
+
+    # 결과를 JSON 형식으로 변환
+    expenses_json = json.dumps([{"month": row.month, "total_expense": row.total_expense} for row in monthly_expenses_summary])
+    incomes_json = json.dumps([{"month": row.month, "total_income": row.total_income} for row in monthly_incomes_summary])
+    
+    return templates.TemplateResponse("summary.html", {
+        "request": request,
+        "expenses_json": expenses_json,
+        "incomes_json": incomes_json,
+        "today": date.today().isoformat()
+    })
+
+# --- uvicorn 실행 부분 ---
+if __name__ == "__main__":
+    import uvicorn
+    # Dockerfile과 포트를 일치시키기 위해 5000번 포트로 변경
+    uvicorn.run(app, host="0.0.0.0", port=5000)
