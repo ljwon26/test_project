@@ -31,13 +31,13 @@
                     <option value="" disabled>카테고리 선택</option>
                     <option value="현금" {% if asset_data.category == '현금' %}selected{% endif %}>현금</option>
                     <option value="예금" {% if asset_data.category == '예금' %}selected{% endif %}>예금</option>
+                    <option value="적금" {% if asset_data.category == '적금' %}selected{% endif %}>적금</option>
                     <option value="주식" {% if asset_data.category == '주식' %}selected{% endif %}>주식</option>
-                    <option value="펀드" {% if asset_data.category == '펀드' %}selected{% endif %}>펀드</option>
+                    <option value="청약" {% if asset_data.category == '청약' %}selected{% endif %}>청약</option>
                     <option value="부동산" {% if asset_data.category == '부동산' %}selected{% endif %}>부동산</option>
                     <option value="가구" {% if asset_data.category == '가구' %}selected{% endif %}>가구</option>
                     <option value="자동차" {% if asset_data.category == '자동차' %}selected{% endif %}>자동차</option>
                     <option value="대출" {% if asset_data.category == '대출' %}selected{% endif %}>대출</option>
-                    <option value="기타부채" {% if asset_data.category == '기타부채' %}selected{% endif %}>기타 부채</option>
                     <option value="기타" {% if asset_data.category == '기타' %}selected{% endif %}>기타</option>
                 </select>
             </div>

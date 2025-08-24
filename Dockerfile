@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5000
 
 # 애플리케이션 실행
-CMD ["python", "app.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]

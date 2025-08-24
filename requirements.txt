@@ -7,4 +7,3 @@ pydantic
 aiosmtplib
 apscheduler
 python-multipart
-pymysql

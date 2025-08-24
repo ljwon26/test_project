@@ -47,7 +47,8 @@
             <div class="form-group">
                 <label for="income_type">수입 유형</label>
                 <select id="income_type" name="income_type" required>
-                    <option value="월급" {% if income.income_type == '월급' %}selected{% endif %}>월급</option>
+                    <option value="월급(재원)" {% if income.income_type == '월급(재원)' %}selected{% endif %}>월급(재원)</option>
+                    <option value="월급(다슬)" {% if income.income_type == '월급(다슬)' %}selected{% endif %}>월급(다슬)</option>
                     <option value="기타수입" {% if income.income_type == '기타수입' %}selected{% endif %}>기타 수입</option>
                 </select>
             </div>
