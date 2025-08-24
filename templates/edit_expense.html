@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지출 수정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">지출 수정</h2>
+        <form action="/edit_expense/{{ expense.id }}" method="post">
+            <div class="form-group">
+                <label for="date">날짜</label>
+                <input type="date" id="date" name="date" value="{{ expense.date.isoformat() }}" required>
+            </div>
+            <div class="form-group">
+                <label for="expense_type">지출 유형</label>
+                <select id="expense_type" name="expense_type" required>
+                    <option value="고정적" {% if expense.expense_type == '고정적' %}selected{% endif %}>고정적 지출</option>
+                    <option value="변동적" {% if expense.expense_type == '변동적' %}selected{% endif %}>변동적 지출</option>
+                    <option value="저축" {% if expense.expense_type == '저축' %}selected{% endif %}>저축</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="category">카테고리</label>
+                <select id="category" name="category" required>
+                    <option value="주거/통신" {% if expense.category == '주거/통신' %}selected{% endif %}>주거/통신</option>
+                    <option value="저축" {% if expense.category == '저축' %}selected{% endif %}>저축</option>
+                    <option value="식비" {% if expense.category == '식비' %}selected{% endif %}>식비</option>
+                    <option value="개인용돈" {% if expense.category == '개인용돈' %}selected{% endif %}>개인용돈</option>
+                    <option value="생활용품" {% if expense.category == '생활용품' %}selected{% endif %}>생활용품</option>
+                    <option value="교통비" {% if expense.category == '교통비' %}selected{% endif %}>교통비</option>
+                    <option value="문화/여가" {% if expense.category == '문화/여가' %}selected{% endif %}>문화/여가</option>
+                    <option value="기타" {% if expense.category == '기타' %}selected{% endif %}>기타</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="item">항목</label>
+                <input type="text" id="item" name="item" value="{{ expense.item }}" required>
+            </div>
+            <div class="form-group">
+                <label for="amount">금액</label>
+                <input type="number" id="amount" name="amount" value="{{ expense.amount }}" required>
+            </div>
+            <div class="form-group">
+                <label for="notes">메모</label>
+                <input type="text" id="notes" name="notes" value="{{ expense.notes or '' }}">
+            </div>
+            <div class="flex justify-between items-center">
+                <a href="/expenses" class="text-gray-600 hover:text-gray-900 font-semibold">취소</a>
+                <button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+                    지출 업데이트
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

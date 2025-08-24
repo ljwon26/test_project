@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주택 비용 추가</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="container mx-auto max-w-2xl bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-900">🏡 주택 비용 추가</h1>
+
+        <!-- 네비게이션 메뉴 -->
+        <nav class="flex justify-center space-x-4 mb-8">
+            <a href="/" class="py-2 px-4 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200">대시보드</a>
+            <a href="/add_asset" class="py-2 px-4 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200">자산 추가</a>
+            <a href="/add_house" class="py-2 px-4 rounded-full bg-blue-100 text-blue-700 font-semibold">주택 비용 추가</a>
+            <a href="/notifications" class="py-2 px-4 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200">알림 관리</a>
+            <a href="/expenses" class="py-2 px-4 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200">지출 관리</a>
+        </nav>
+
+        <form action="/add_house" method="post" class="space-y-4">
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700">날짜</label>
+                <input type="date" id="date" name="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="{{ today }}">
+            </div>
+            <div>
+                <label for="maintenance_cost" class="block text-sm font-medium text-gray-700">관리비</label>
+                <input type="number" id="maintenance_cost" name="maintenance_cost" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="예: 250000">
+            </div>
+            <div>
+                <label for="utility_bill" class="block text-sm font-medium text-gray-700">공과금</label>
+                <input type="number" id="utility_bill" name="utility_bill" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="예: 120000">
+            </div>
+            <div>
+                <label for="memo" class="block text-sm font-medium text-gray-700">메모</label>
+                <textarea id="memo" name="memo" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="간단한 메모를 남겨주세요."></textarea>
+            </div>
+            <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                주택 비용 추가
+            </button>
+        </form>
+    </div>
+</body>
+</html>

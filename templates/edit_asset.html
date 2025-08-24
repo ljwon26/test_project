@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자산 수정 - J&D 하우스 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8 flex justify-center items-center">
+    <div class="max-w-xl w-full bg-white p-6 sm:p-8 rounded-2xl shadow-xl">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-6 flex items-center justify-center">
+            <i class="fa-solid fa-pen-to-square text-indigo-600 mr-2"></i> 자산 수정
+        </h1>
+        <form action="/edit_asset/{{ asset_data.id }}" method="post" class="space-y-6">
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700">날짜</label>
+                <input type="date" id="date" name="date" value="{{ asset_data.date }}" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700">카테고리</label>
+                <select id="category" name="category" required
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="" disabled>카테고리 선택</option>
+                    <option value="현금" {% if asset_data.category == '현금' %}selected{% endif %}>현금</option>
+                    <option value="예금" {% if asset_data.category == '예금' %}selected{% endif %}>예금</option>
+                    <option value="주식" {% if asset_data.category == '주식' %}selected{% endif %}>주식</option>
+                    <option value="펀드" {% if asset_data.category == '펀드' %}selected{% endif %}>펀드</option>
+                    <option value="부동산" {% if asset_data.category == '부동산' %}selected{% endif %}>부동산</option>
+                    <option value="가구" {% if asset_data.category == '가구' %}selected{% endif %}>가구</option>
+                    <option value="자동차" {% if asset_data.category == '자동차' %}selected{% endif %}>자동차</option>
+                    <option value="대출" {% if asset_data.category == '대출' %}selected{% endif %}>대출</option>
+                    <option value="기타부채" {% if asset_data.category == '기타부채' %}selected{% endif %}>기타 부채</option>
+                    <option value="기타" {% if asset_data.category == '기타' %}selected{% endif %}>기타</option>
+                </select>
+            </div>
+            <div>
+                <label for="item" class="block text-sm font-medium text-gray-700">항목</label>
+                <input type="text" id="item" name="item" value="{{ asset_data.item }}" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="amount" class="block text-sm font-medium text-gray-700">금액</label>
+                <input type="number" id="amount" name="amount" value="{{ asset_data.amount }}" step="0.01" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="notes" class="block text-sm font-medium text-gray-700">메모</label>
+                <textarea id="notes" name="notes" rows="3"
+                          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">{{ asset_data.notes }}</textarea>
+            </div>
+            <div class="flex justify-between items-center space-x-4">
+                <a href="/" class="flex-1 text-center bg-gray-300 text-gray-800 py-2 px-4 rounded-full font-semibold hover:bg-gray-400 transition duration-300 ease-in-out">
+                    취소
+                </a>
+                <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out">
+                    <i class="fa-solid fa-save mr-1"></i> 저장
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

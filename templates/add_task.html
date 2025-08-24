@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>신규 알림 등록</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CSS 테마 커스터마이징
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        // 대시보드 스타일과 어울리는 컬러 팔레트
+                        primary: '#4f46e5', // 진한 인디고
+                        secondary: '#e0e7ff', // 연한 인디고
+                        accent: '#10b981', // 에메랄드 그린
+                        neutral: '#d1d5db', // 회색
+                    }
+                }
+            }
+        }
+
+        // DOMContentLoaded 이벤트는 HTML 문서가 완전히 로드된 후 실행되므로, window.onload보다 빠릅니다.
+        document.addEventListener('DOMContentLoaded', () => {
+            // 오늘 날짜를 YYYY-MM-DD 형식으로 가져옵니다.
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 1을 더합니다.
+            const day = String(today.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            // 마감일 입력 필드를 찾아서 값을 설정합니다.
+            const dueDateInput = document.getElementById('due_date');
+            if (dueDateInput) {
+                dueDateInput.value = formattedDate;
+            }
+        });
+    </script>
+    <style>
+        /* 깔끔한 디자인을 위한 커스텀 스타일 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 연한 회색 배경 */
+        }
+        /* 입력 필드에 통일성을 주는 스타일 */
+        .input-field {
+            @apply mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition duration-300;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- 메인 컨테이너: 대시보드 위젯처럼 보이도록 스타일링 -->
+    <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-lg transition-all duration-300 transform hover:scale-105">
+        
+        <!-- 헤더 섹션 -->
+        <div class="flex items-center justify-between mb-8 pb-4 border-b-2 border-secondary">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="text-primary">신규</span> 알림 등록
+            </h1>
+            <!-- 닫기 버튼 또는 뒤로 가기 링크 아이콘 -->
+            <a href="/" class="text-gray-500 hover:text-primary transition-colors duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </a>
+        </div>
+        
+        <!-- 폼 섹션 -->
+        <form action="/add_notification" method="post" class="space-y-6">
+            <p class="text-gray-600 mb-6 text-sm">
+                새로운 알림을 등록하고 필요한 정보를 입력해 주세요.
+            </p>
+
+            <!-- 관리항목명 입력 필드 -->
+            <div>
+                <label for="item_name" class="block text-sm font-semibold text-gray-700 mb-2">관리 항목</label>
+                <input type="text" id="item_name" name="item_name" required class="input-field">
+            </div>
+            
+            <!-- 세부 모델 이름 입력 필드 -->
+            <div>
+                <label for="model_name" class="block text-sm font-semibold text-gray-700 mb-2">세부 모델 (선택 사항)</label>
+                <input type="text" id="model_name" name="model_name" class="input-field">
+            </div>
+
+            <!-- 마감일 입력 필드 -->
+            <div>
+                <label for="due_date" class="block text-sm font-semibold text-gray-700 mb-2">마감일</label>
+                <input type="date" id="due_date" name="due_date" required class="input-field">
+            </div>
+            
+            <!-- 이메일 주소 입력 필드 -->
+            <div>
+                <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">이메일</label>
+                <input type="email" id="email" name="email" required class="input-field">
+            </div>
+            
+            <!-- 버튼 그룹 -->
+            <div class="flex justify-between items-center pt-4">
+                <!-- href를 '/dashboard'로 수정 -->
+                <a href="/"
+                   class="py-3 px-6 rounded-xl bg-gray-500 text-white font-medium shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-300">
+                    대시보드로 이동
+                </a>
+                <button type="submit"
+                        class="py-3 px-6 rounded-xl bg-primary text-white font-semibold shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 transform hover:-translate-y-1">
+                    등록
+                </button>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

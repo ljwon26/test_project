@@ -1,0 +1,1 @@
+from main import app  # main.py에서 app 객체를 가져옵니다.

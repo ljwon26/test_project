@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가계부 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 뒤로가기 버튼 -->
+        <a href="/" class="inline-block mb-6 text-gray-600 hover:text-indigo-600 font-semibold transition-colors duration-200">
+            대시보드 이동
+        </a>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 지출 추가 카드 -->
+            <div class="bg-white p-6 rounded-lg shadow-md col-span-1 md:col-span-2">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">지출 추가</h2>
+                <form id="expense-form" action="/add_expense" method="post">
+                    <div class="form-group">
+                        <label for="expense_type">지출 유형</label>
+                        <select id="expense_type" name="expense_type" required>
+                            <!-- 저축 항목의 값을 '저축'으로 수정했습니다. -->
+                            <option value="고정적">고정적 지출</option>
+                            <option value="변동적">변동적 지출</option>
+                            <option value="저축">저축</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">카테고리</label>
+                        <select id="category" name="category" required>
+                            <option value="주거/통신">주거/통신</option>
+                            <option value="저축">저축</option>
+                            <option value="식비">식비</option>
+                            <option value="개인용돈">개인용돈</option>
+                            <option value="생활용품">생활용품</option>
+                            <option value="교통비">교통비</option>
+                            <option value="문화/여가">문화/여가</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="item">항목</label>
+                        <input type="text" id="item" name="item" required placeholder="예: 커피, 전기세">
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">금액</label>
+                        <input type="number" id="amount" name="amount" required placeholder="예: 4500">
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">메모</label>
+                        <input type="text" id="notes" name="notes" placeholder="예: 친구와 점심">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+                            지출 추가
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 수입 추가 카드 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">수입 추가</h2>
+                <form action="/add_income" method="post">
+                    <div class="form-group">
+                        <label for="income_type">수입 유형</label>
+                        <select id="income_type" name="income_type" required>
+                            <option value="월급">월급</option>
+                            <option value="기타수입">기타 수입</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="income_amount">금액</label>
+                        <input type="number" id="income_amount" name="amount" required placeholder="예: 3000000">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-200">
+                            수입 추가
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 수입 내역 테이블 -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">수입 내역</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
+                            <!-- 수정/삭제 헤더 추가 -->
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for income in incomes %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ income.income_type }}</td>
+                            <!-- 금액에 쉼표와 '원' 표시 추가 -->
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "{:,.0f}".format(income.amount) }} 원</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="/edit_income/{{ income.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">수정</a>
+                                <form action="/delete_income" method="post" class="inline" onsubmit="return confirm('정말로 이 항목을 삭제하시겠습니까?');">
+                                    <input type="hidden" name="income_id" value="{{ income.id }}">
+                                    <button type="submit" class="text-red-600 hover:text-red-900">삭제</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 지출 내역 테이블 -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">지출 내역</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">유형</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">항목</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">메모</th>
+                             <!-- 수정/삭제 헤더 추가 -->
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for expense in expenses %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ expense.expense_type }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ expense.category }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ expense.item }}</td>
+                            <!-- 금액에 쉼표와 '원' 표시 추가 -->
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "{:,.0f}".format(expense.amount) }} 원</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ expense.notes }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="/edit_expense/{{ expense.id }}" class="text-indigo-600 hover:text-indigo-900 mr-4">수정</a>
+                                <form action="/delete_expense" method="post" class="inline" onsubmit="return confirm('정말로 이 항목을 삭제하시겠습니까?');">
+                                    <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                                    <button type="submit" class="text-red-600 hover:text-red-900">삭제</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 - 다슬&재원 집 관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Chart.js 데이터 라벨 플러그인 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* 로딩 스피너 스타일 */
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- 헤더 섹션 -->
+        <header class="bg-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 flex items-center">
+                <i class="fa-solid fa-house-circle-check text-indigo-600 mr-2"></i> 다슬&재원의 집관리 시스템
+            </h1>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <a href="/add_asset" class="w-full sm:w-auto bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out text-center">
+                    <i class="fa-solid fa-plus mr-1"></i> 자산 추가
+                </a>
+                <a href="/expenses" class="w-full sm:w-auto bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out text-center">
+                    <i class="fa-solid fa-chart-line mr-1"></i> 월급 관리
+                </a>
+                <a href="/notifications" class="w-full sm:w-auto bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold hover:bg-indigo-700 transition duration-300 ease-in-out text-center">
+                    <i class="fa-solid fa-bell mr-1"></i> 알림 등록
+                </a>
+            </div>
+        </header>
+
+        <!-- 자산 카테고리별 현황 및 필터링 섹션 (하나로 통합) -->
+        <section class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">자산 현황 및 필터링</h2>
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-8">
+                <!-- 차트 컨테이너 -->
+                <div class="w-full sm:w-2/3">
+                    <div class="h-[300px] w-full flex flex-col justify-center items-center">
+                        <div class="w-full h-full">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                        <!-- 총자산 금액 표시 영역 -->
+                        <div id="total-asset-display" class="mt-4 text-xl font-bold text-gray-800 text-center"></div>
+                    </div>
+                </div>
+
+                <!-- 필터링 컨테이너 -->
+                <div class="w-full sm:w-1/3 p-4 sm:border-l sm:border-gray-200">
+                    <h3 class="text-lg font-bold mb-2 text-gray-700">카테고리 필터</h3>
+                    <div id="filter-checkboxes" class="space-y-2">
+                        <!-- 체크박스는 JavaScript에 의해 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 자산 목록 -->
+        <section class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">자산 목록</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="asset-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">항목</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">금액</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">메모</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">수정/삭제</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="asset-table-body">
+                        <!-- 이 부분은 JavaScript에 의해 동적으로 채워집니다 -->
+                    </tbody>
+                </table>
+                <div id="no-assets-message" class="text-center text-gray-500 py-10" style="display:none;">
+                    자산 데이터가 없습니다.
+                </div>
+            </div>
+        </section>
+
+        <!-- 알림 목록 -->
+        <section class="bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">알림 목록</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">항목</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">모델</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">마감일</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for task in tasks_data %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.item_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.model_name if task.model_name is not none else 'N/A' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.due_date }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.email }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">등록된 알림이 없습니다.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Script section -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Chart.register(ChartDataLabels);
+
+            let categoryChartInstance = null;
+            const UNCHECKED_CATEGORY = '대출금액';
+
+            let assetsData = [];
+            try {
+                // This part assumes data is received from the server.
+                // In a real application, this would be filled by a Flask/Django template engine.
+                assetsData = JSON.parse('{{ assets_data | default([]) | tojson | safe }}');
+            } catch (e) {
+                console.error("Error parsing asset data:", e);
+            }
+
+            /**
+             * Updates the pie chart with the given data.
+             * @param {Array} data - The array of asset data to be used in the chart.
+             */
+            function updateChart(data) {
+                if (categoryChartInstance) {
+                    categoryChartInstance.destroy();
+                }
+
+                if (data.length > 0) {
+                    document.getElementById('categoryChart').style.display = 'block';
+
+                    const categoryCounts = data.reduce((acc, asset) => {
+                        acc[asset.category] = (acc[asset.category] || 0) + asset.amount;
+                        return acc;
+                    }, {});
+
+                    const chartData = {
+                        labels: Object.keys(categoryCounts),
+                        datasets: [{
+                            data: Object.values(categoryCounts),
+                            backgroundColor: [
+                                '#AEC6CF', '#77DD77', '#FDFD96', '#FF6961', '#B39EB5', '#FFC0CB',
+                                '#ADD8E6', '#90EE90', '#FFFFE0', '#F08080', '#DDA0DD', '#F08080'
+                            ],
+                            hoverOffset: 4
+                        }]
+                    };
+
+                    const ctx = document.getElementById('categoryChart').getContext('2d');
+                    categoryChartInstance = new Chart(ctx, {
+                        type: 'pie',
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: {
+                                padding: 40
+                            },
+                            plugins: {
+                                datalabels: {
+                                    display: false
+                                },
+                                legend: {
+                                    position: 'left',
+                                    labels: {
+                                        generateLabels: (chart) => {
+                                            const legendData = chart.data;
+                                            if (!legendData.labels || !legendData.datasets.length) return [];
+                                            const total = legendData.datasets[0].data.reduce((a, b) => a + b, 0);
+                                            return legendData.labels.map((label, i) => {
+                                                const value = legendData.datasets[0].data[i];
+                                                const percentage = total > 0 ? (value / total * 100).toFixed(0) : 0;
+                                                return {
+                                                    text: `${label} (${percentage}%)`,
+                                                    fillStyle: legendData.datasets[0].backgroundColor[i],
+                                                    pointStyle: 'rectRounded',
+                                                    index: i
+                                                };
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    document.getElementById('categoryChart').style.display = 'none';
+                }
+            }
+
+            /**
+             * Updates the asset list table with the given data.
+             * @param {Array} data - The array of asset data to display.
+             */
+            function updateAssetTable(data) {
+                const tableBody = document.getElementById('asset-table-body');
+                const noAssetsMessage = document.getElementById('no-assets-message');
+                tableBody.innerHTML = '';
+                
+                if (data.length > 0) {
+                    noAssetsMessage.style.display = 'none';
+                    data.forEach(asset => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${asset.category}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${asset.item}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${new Intl.NumberFormat('ko-KR').format(asset.amount)}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${asset.notes}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="/edit_asset/${asset.id}" class="text-indigo-600 hover:text-indigo-900 mr-4">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+                                <form action="/delete_asset" method="post" class="inline" onsubmit="return confirm('이 항목을 삭제하시겠습니까?');">
+                                    <input type="hidden" name="asset_id" value="${asset.id}">
+                                    <button type="submit" class="text-red-600 hover:text-red-900">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    noAssetsMessage.style.display = 'block';
+                }
+            }
+
+            /**
+             * Creates filter checkboxes and attaches event listeners.
+             */
+            function initializeCheckboxes(data) {
+                const checkboxContainer = document.getElementById('filter-checkboxes');
+                checkboxContainer.innerHTML = '';
+
+                // Extract and sort unique categories.
+                const uniqueCategories = [...new Set(data.map(item => item.category))].sort();
+
+                // 'All' checkbox creation (visually distinct)
+                const allCheckbox = document.createElement('div');
+                allCheckbox.className = "p-2 rounded-lg bg-gray-200";
+                // Initial state: 'All' is unchecked because '대출금액' is unchecked.
+                const allCheckedAttribute = uniqueCategories.every(cat => cat !== UNCHECKED_CATEGORY) ? 'checked' : '';
+                allCheckbox.innerHTML = `
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="all-categories" value="all" ${allCheckedAttribute}
+                               class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-gray-700 font-semibold">전체</span>
+                    </label>
+                `;
+                checkboxContainer.appendChild(allCheckbox);
+
+                // Create checkboxes for each category.
+                uniqueCategories.forEach(category => {
+                    const categoryCheckbox = document.createElement('div');
+                    const isChecked = category !== UNCHECKED_CATEGORY ? 'checked' : '';
+                    categoryCheckbox.innerHTML = `
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" class="category-checkbox rounded text-indigo-600 focus:ring-indigo-500" value="${category}" ${isChecked}>
+                            <span class="text-gray-700">${category}</span>
+                        </label>
+                    `;
+                    checkboxContainer.appendChild(categoryCheckbox);
+                });
+
+                // Add event listener to the checkbox container.
+                checkboxContainer.addEventListener('change', (e) => {
+                    if (e.target.type !== 'checkbox') return;
+
+                    const allCheck = document.getElementById('all-categories');
+                    const otherChecks = Array.from(document.querySelectorAll('.category-checkbox'));
+
+                    // Logic for the 'All' checkbox.
+                    if (e.target.id === 'all-categories') {
+                        otherChecks.forEach(cb => cb.checked = allCheck.checked);
+                    } else {
+                        // Logic for individual category checkboxes.
+                        const allOthersChecked = otherChecks.every(cb => cb.checked);
+                        allCheck.checked = allOthersChecked;
+                    }
+                    
+                    applyFilter();
+                });
+                
+                // Apply the initial filter.
+                applyFilter();
+            }
+
+            /**
+             * Filters data based on checked checkboxes and updates the chart and table.
+             */
+            function applyFilter() {
+                const selectedCategories = Array.from(document.querySelectorAll('.category-checkbox:checked'))
+                                                .map(cb => cb.value);
+
+                let filteredData;
+                if (selectedCategories.length === 0) {
+                    filteredData = []; // Empty array if no categories are selected.
+                } else {
+                    filteredData = assetsData.filter(asset => selectedCategories.includes(asset.category));
+                }
+                
+                // Calculate and update total amount.
+                const totalAmount = filteredData.reduce((sum, asset) => sum + asset.amount, 0);
+                const totalDisplay = document.getElementById('total-asset-display');
+                if (totalAmount > 0) {
+                     totalDisplay.innerHTML = `총 자산: ${new Intl.NumberFormat('ko-KR').format(totalAmount)}원`;
+                } else {
+                    totalDisplay.innerHTML = `총 자산: 0원`;
+                }
+
+                updateChart(filteredData);
+                updateAssetTable(filteredData);
+            }
+
+            // Initialize filter checkboxes and dashboard on page load.
+            initializeCheckboxes(assetsData);
+        });
+    </script>
+</body>
+</html>

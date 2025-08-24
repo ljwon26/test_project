@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수입 수정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">수입 수정</h2>
+        <form action="/edit_income/{{ income.id }}" method="post">
+            <div class="form-group">
+                <label for="income_type">수입 유형</label>
+                <select id="income_type" name="income_type" required>
+                    <option value="월급" {% if income.income_type == '월급' %}selected{% endif %}>월급</option>
+                    <option value="기타수입" {% if income.income_type == '기타수입' %}selected{% endif %}>기타 수입</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="amount">금액</label>
+                <input type="number" id="amount" name="amount" value="{{ income.amount }}" required>
+            </div>
+            <div class="flex justify-between items-center">
+                <a href="/expenses" class="text-gray-600 hover:text-gray-900 font-semibold">취소</a>
+                <button type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+                    수입 업데이트
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
