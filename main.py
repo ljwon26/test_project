@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Form, Request, BackgroundTasks, HTTPException
+from fastapi import FastAPI, Depends, Form, Request, BackgroundTasks, HTTPException , status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -11,10 +11,20 @@ from datetime import date, timedelta, datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from urllib.parse import urlencode
 import json
+import os
+from starlette.middleware.sessions import SessionMiddleware
+
 # 'database.py' 파일에서 필요한 객체들을 가져옵니다.
 from database import SessionLocal, Base, engine, get_db
 
 app = FastAPI()
+
+# --- 세션 미들웨어 추가 ---
+SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_changed")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+# --- 로그인에 사용할 비밀번호 설정 ---
+LOGIN_PASSWORD = os.getenv("LOGIN_PASSWORD", "3152")
 
 # 정적 파일을 서빙하기 위한 설정입니다.
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -23,6 +33,38 @@ templates = Jinja2Templates(directory="templates")
 
 scheduler = AsyncIOScheduler()
 scheduler.start()
+
+# --- 로그인/로그아웃 라우트 추가 ---
+@app.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request, error: str | None = None):
+    """로그인 폼을 보여주는 페이지입니다."""
+    return templates.TemplateResponse("login.html", {"request": request, "error": error})
+
+@app.post("/login", response_class=RedirectResponse)
+async def login_post(request: Request, password: str = Form(...)):
+    """로그인 요청을 처리합니다."""
+    if password == LOGIN_PASSWORD:
+        request.session['logged_in'] = True
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    else:
+        return RedirectResponse(url="/login?error=1", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.get("/logout", response_class=RedirectResponse)
+async def logout(request: Request):
+    """로그아웃을 처리하고 세션을 초기화합니다."""
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- 로그인 상태 확인 의존성(Dependency) ---
+async def verify_login(request: Request):
+    """
+    세션을 확인하여 로그인 상태가 아니면 로그인 페이지로 리디렉션하는 의존성 함수.
+    """
+    if not request.session.get('logged_in'):
+        raise HTTPException(
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            headers={"Location": "/login"}
+        )
 
 # --- Pydantic 모델: 데이터 유효성 검사를 위한 클래스 ---
 # Pydantic 모델은 클라이언트에서 전송되는 JSON 데이터의 형식을 정의합니다.
@@ -125,7 +167,7 @@ async def send_email(to_email: str, subject: str, body: str):
 
 # --- 라우트 핸들러: API 엔드포인트 ---
 @app.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, db: Session = Depends(get_db)):
+def dashboard(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
     # Assets 객체를 딕셔너리로 변환
     assets_data_db = db.query(Assets).order_by(Assets.date.desc()).all()
     assets_data_list = []
@@ -223,7 +265,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     })
 
 @app.get("/add_asset", response_class=HTMLResponse)
-def add_asset_form(request: Request):
+def add_asset_form(request: Request, _: bool = Depends(verify_login)):
     # `today` 변수를 템플릿에 전달합니다.
     return templates.TemplateResponse("add_asset.html", {"request": request, "today": date.today().isoformat()})
 
@@ -249,7 +291,7 @@ def create_asset(
 
 # 수정 라우트 추가
 @app.get("/edit_asset/{asset_id}", response_class=HTMLResponse)
-def edit_asset_form(request: Request, asset_id: int, db: Session = Depends(get_db)):
+def edit_asset_form(request: Request, asset_id: int, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
     asset_data = db.query(Assets).filter(Assets.id == asset_id).first()
     if not asset_data:
         raise HTTPException(status_code=404, detail="Asset not found")
@@ -289,7 +331,7 @@ def update_asset(
 
 
 @app.post("/delete_asset", response_class=RedirectResponse)
-def delete_asset(asset_id: int = Form(...), db: Session = Depends(get_db)):
+def delete_asset(asset_id: int = Form(...), db: Session = Depends(get_db), _: bool = Depends(verify_login)):
     asset = db.query(Assets).filter(Assets.id == asset_id).first()
     if asset:
         db.delete(asset)
@@ -502,7 +544,7 @@ def delete_task(task_id: int = Form(...), db: Session = Depends(get_db)):
 
 # 새로운 지출 관리 라우트
 @app.get("/expenses", response_class=HTMLResponse)
-def get_expenses(request: Request, db: Session = Depends(get_db)):
+def get_expenses(request: Request, db: Session = Depends(get_db), _: bool = Depends(verify_login)):
     expenses = db.query(Expense).order_by(Expense.date.desc()).all()
     incomes = db.query(Income).order_by(Income.id.desc()).all() # 수입 데이터 가져오기
     
