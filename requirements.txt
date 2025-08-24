@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+Jinja2
+pydantic
+aiosmtplib
+apscheduler
+python-multipart
+mysqlclient
+pymysql
